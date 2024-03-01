@@ -7,6 +7,8 @@ import {IPAssetRegistry} from "@story-protocol/protocol-core/contracts/registrie
 import {LicenseMarketPlace} from "../src/LicenseMarketPlace.sol";
 import {MockLicensingModule} from "@story-protocol/protocol-core/test/foundry/mocks/module/MockLicensingModule.sol";
 import {MockRoyaltyModule} from "@story-protocol/protocol-core/test/foundry/mocks/module/MockRoyaltyModule.sol";
+import {ILicensingModule} from "@story-protocol/protocol-core/contracts/interfaces/modules/licensing/ILicensingModule.sol";
+import {MockLicenseRegistry} from "@story-protocol/protocol-core/test/foundry/mocks/registry/MockLicenseRegistry.sol";
 
 contract MockERC721 is ERC721 {
     uint256 public totalSupply = 0;
@@ -31,13 +33,23 @@ contract LicenseMarketPlaceTest is Test {
     MockERC721 public NFT;
     LicenseMarketPlace public licenseMarketPlace;
 
+// MockLicensingModule licensingModule = new MockLicensingModule();
+        // MockLicenseRegistry licenseRegistry = new MockLicenseRegistry();
+        // MockIpAssetRegistry ipAssetRegistry = new MockIpAssetRegistry();
     function setUp() public {
         NFT = new MockERC721("Story Mock NFT", "STORY");
-        ILicensroyaltyModule = new MockLicensingModule();
+        address royalityModule = address(new MockRoyaltyModule());
+        address licenseRegistryAddress = address(new MockLicenseRegistry());
+        address licensingModuleAddr = address(new MockLicensingModule(address(0), address(0)));
+        address ipAssetRegistry = address(new IPAssetRegistry());
+
+        
         licenseMarketPlace = new LicenseMarketPlace(
-            IPA_REGISTRY_ADDR,
-            IP_RESOLVER_ADDR,
-            address(NFT)
+            licensingModuleAddr,
+            licenseRegistryAddress,
+            ipAssetRegistry,
+            address(NFT),
+            1
         );
     }
 
