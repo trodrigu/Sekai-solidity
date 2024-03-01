@@ -11,15 +11,18 @@ import {IIPAccount} from "@story-protocol/protocol-core/contracts/interfaces/IIP
 import {IStoryProtocolGateway} from "@story-protocol/protocol-periphery/contracts/StoryProtocolGateway.sol";
 import {SPG} from "@story-protocol/protocol-periphery/contracts/lib/SPG.sol";
 import {Metadata} from "@story-protocol/protocol-periphery/contracts/lib/Metadata.sol";
+import {ILicensingModule} from "@story-protocol/protocol-core/contracts/interfaces/modules/licensing/ILicensingModule.sol";
+import {PILPolicyFrameworkManager} from "@story-protocol/protocol-core/contracts/modules/licensing/PILPolicyFrameworkManager.sol";
 
 contract LicenseMarketPlace is ILicenseMarketPlace {
-    address public immutable NFT;
-    address public immutable IP_RESOLVER;
     IPAssetRegistry public immutable IPA_REGISTRY;
     ILicenseRegistry public immutable LICENSE_REGISTRY;
     uint256 public immutable POLICY_ID;
     IStoryProtocolGateway public spg;
     address public immutable DEFAULT_SPG_NFT;
+    ILicensingModule public immutable LICENSING_MODULE;
+    PILPolicyFrameworkManager public immutable POLICY_MANAGER;
+    
 
     event Trade(
         address trader,
@@ -47,17 +50,17 @@ contract LicenseMarketPlace is ILicenseMarketPlace {
     mapping(uint256 => address) public licenseIdToAddress;
 
     constructor(
+        address licensingModuleAddr,
         address licenseRegistryAddress,
         address ipAssetRegistry,
-        address resolver,
-        address nft,
+        address defaultSPGNFTAddr,
         uint256 policyId
     ) {
         LICENSE_REGISTRY = ILicenseRegistry(licenseRegistryAddress);
         IPA_REGISTRY = IPAssetRegistry(ipAssetRegistry);
-        IP_RESOLVER = resolver;
-        NFT = nft;
         POLICY_ID = policyId;
+        DEFAULT_SPG_NFT = defaultSPGNFTAddr;
+        LICENSING_MODULE = ILicensingModule(licensingModuleAddr);
     }
 
     function _registerIpAsset(
@@ -276,8 +279,6 @@ contract LicenseMarketPlace is ILicenseMarketPlace {
         uint256 protocolFee = (price * protocolFeePercent) / 1 ether;
         uint256 subjectFee = (price * subjectFeePercent) / 1 ether;
 
-        IIPAccount ipAccount = IIPAccount(payable(sourceIpAssetAddress));
-        address owner = ipAccount.owner();
         require(
             supply > 0 || _verifyOwner(msg.sender, targeIpAssetAddress),
             "Only the IPAccount owner can buy the first share"
@@ -335,8 +336,34 @@ contract LicenseMarketPlace is ILicenseMarketPlace {
                 (totalSupplyAndBurned + amount) *
                 (2 * (totalSupplyAndBurned - 1 + amount) + 1)) / 6;
         uint256 summation = sum2 - sum1;
+
         return (summation * 1 ether) / 16000;
     }
+
+    // This function will get all the licenses from each of the childIpids. Then, link them with LICENSE_REGISTRY.linkIpToParents.
+    // Then, the license metadata will be update each of the numDerivatives by decrementing each of the parents by 1
+    function linkIpToParents(
+        address[] calldata parentIps,
+        address childIpId,
+        bytes calldata royaltyContext
+    ) external {
+        uint256[] memory licensesToLink = new uint256[](parentIps.length);
+        for (uint256 i = 0; i < parentIps.length; i++) {
+            licensesToLink[i] = sharesMetadata[parentIps[i]].licenseId;
+            
+        }
+        LICENSING_MODULE.linkIpToParents(licensesToLink, childIpId, royaltyContext);
+        for (uint256 i = 0; i < parentIps.length; i++) {
+            sharesMetadata[parentIps[i]].totalSupply--;
+            sharesMetadata[parentIps[i]].numDerivatives++;
+        }
+    }
+    function setApproval(address licensorAddr, address childIpId, bool approved) external {
+        uint256 licenseId = sharesMetadata[licensorAddr].licenseId;
+        POLICY_MANAGER.setApproval(licenseId, childIpId, approved);
+    }
+
+    // set Approval for the world
 
     // function claimRoyalties(
     //     address owner,
@@ -354,3 +381,10 @@ contract LicenseMarketPlace is ILicenseMarketPlace {
     //     return address(owner);
     // }
 }
+
+/*
+- Mint a world
+- Create a story for a world that can build on top of a story
+- function registerCharacterToWorld(uint256 worldId, address tokenContract, uint256 tokenId) public virtual;
+- 
+*/
