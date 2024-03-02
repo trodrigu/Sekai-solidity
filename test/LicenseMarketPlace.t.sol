@@ -47,15 +47,12 @@ contract LicenseMarketPlaceTest is Test {
     address public bob;
     Users public users;
 
-    // MockLicensingModule licensingModule = new MockLicensingModule();
-    // MockLicenseRegistry licenseRegistry = new MockLicenseRegistry();
-    // MockIpAssetRegistry ipAssetRegistry = new MockIpAssetRegistry();
-    address royalityModule = 0xA6bEf9CC650A16939566c1da5d5088f3F028a865;
-    address licenseRegistryAddress = 0xc2BC7a2d5784768BDEd98436f2522A4931e2FBb4;
     address licensingModuleAddr = 0x950d766A1a0afDc33c3e653C861A8765cb42DbdC;
+    address licenseRegistryAddress = 0xc2BC7a2d5784768BDEd98436f2522A4931e2FBb4;
     address ipAssetRegistry = 0x292639452A975630802C17c9267169D93BD5a793;
-    address spgAddr = 0xf82EEe73c2c81D14DF9bC29DC154dD3c079d80a0;
+    address royalityModule = 0xA6bEf9CC650A16939566c1da5d5088f3F028a865;
     address defaultNFTAddr = 0x9d790FF5B6A7469f32f18E677E15D48b86C6839b;
+    address spgAddr = 0xf82EEe73c2c81D14DF9bC29DC154dD3c079d80a0;
     address registrationAddress = 0x613128e88b568768764824f898C8135efED97fA6;
     address ipAccountAddress = 0xBD2780F291588C8bDDf7F5874988fA9d3179d560;
     address accessControllerAddress = 0xad64a4b2e18FF7D2f97aF083E7b193d7Dd141735;
@@ -91,8 +88,6 @@ contract LicenseMarketPlaceTest is Test {
         uint256 tokenId = NFT.mint();
         NFT.setApprovalForAll(address(licenseMarketPlace), true);
 
-        console.log("NFT owner address %s", NFT.ownerOf(tokenId));
-
         (uint256 _licenseId, address nftAccountAddr) = licenseMarketPlace
             .registerExistingNFT(
                 address(NFT),
@@ -117,8 +112,6 @@ contract LicenseMarketPlaceTest is Test {
         uint256 tokenId = NFT.mint();
         NFT.setApprovalForAll(address(licenseMarketPlace), true);
 
-        console.log("NFT owner address %s", NFT.ownerOf(tokenId));
-
         (uint256 _licenseId, address nftAccountAddr) = licenseMarketPlace
             .registerExistingNFT(
                 address(NFT),
@@ -130,14 +123,12 @@ contract LicenseMarketPlaceTest is Test {
         vm.stopPrank();
 
         vm.startPrank(users.bob);
-        NFT.setApprovalForAll(address(licenseMarketPlace), true);
         ILicenseRegistry(licenseRegistryAddress).setApprovalForAll(
             address(licenseMarketPlace),
             true
         );
 
         // Buy two licenses
-
         licenseMarketPlace.buyKey{value: 0.2 ether}(
             nftAccountAddr,
             users.bob,
@@ -203,8 +194,6 @@ contract LicenseMarketPlaceTest is Test {
         uint256 tokenId = NFT.mint();
         NFT.setApprovalForAll(address(licenseMarketPlace), true);
 
-        console.log("NFT owner address %s", NFT.ownerOf(tokenId));
-
         (uint256 _licenseId, address nftAccountAddr) = licenseMarketPlace
             .registerExistingNFT(
                 address(NFT),
@@ -236,7 +225,7 @@ contract LicenseMarketPlaceTest is Test {
 
         // Create a derivative
         uint256 derivativeId = NFT.mint();
-        NFT.setApprovalForAll(address(licenseMarketPlace), true);
+        // NFT.setApprovalForAll(address(licenseMarketPlace), true);
         address derivativeAddress = IP_ACCOUNT_REGISTRY.registerIpAccount(
             11155111,
             address(NFT),
@@ -247,6 +236,7 @@ contract LicenseMarketPlaceTest is Test {
         address[] memory parentAddrs = new address[](1);
         parentAddrs[0] = nftAccountAddr;
 
+        // We need to grat the derivative address permission to link to the original NFT
         IIPAccount(payable(derivativeAddress)).execute(
             accessControllerAddress,
             0,
@@ -272,72 +262,4 @@ contract LicenseMarketPlaceTest is Test {
         );
         vm.stopPrank();
     }
-
-    // function test_LicenseMarketPlaceLinking() public {
-    //     vm.deal(users.bob, 1000 ether);
-    //     vm.startPrank(users.alice);
-
-    //     uint256 tokenId = NFT.mint();
-    //     NFT.setApprovalForAll(address(licenseMarketPlace), true);
-
-    //     console.log("NFT owner address %s", NFT.ownerOf(tokenId));
-
-    //     (uint256 _licenseId, address nftAccountAddr) = licenseMarketPlace
-    //         .registerExistingNFT(
-    //             address(NFT),
-    //             tokenId,
-    //             "MyNFT",
-    //             "random bytes",
-    //             "www.joinsek.ai"
-    //         );
-    //     vm.stopPrank();
-
-    //     vm.startPrank(users.bob);
-    //     NFT.setApprovalForAll(address(licenseMarketPlace), true);
-    //     ILicenseRegistry(licenseRegistryAddress).setApprovalForAll(
-    //         address(licenseMarketPlace),
-    //         true
-    //     );
-
-    //     // Buy two licenses
-
-    //     licenseMarketPlace.buyKey{value: 0.2 ether}(
-    //         nftAccountAddr,
-    //         users.bob,
-    //         2
-    //     );
-
-    //     assertTrue(
-    //         licenseMarketPlace.balanceOfHolder(nftAccountAddr, users.bob) == 2,
-    //         "Should have bought 2 NFTs"
-    //     );
-
-    //     // Sell one of the licenses
-    //     licenseMarketPlace.sellKey{value: 0.2 ether}(
-    //         nftAccountAddr,
-    //         users.bob,
-    //         1
-    //     );
-
-    //     SekaiObjs.LicenseMetadata memory metadata2 = licenseMarketPlace
-    //         .getMetadata(nftAccountAddr);
-
-    //     // print out metadata2
-    //     console.log(
-    //         "values in metadata2 %i %i %i",
-    //         metadata2.totalSupply,
-    //         metadata2.numDerivatives
-    //     );
-
-    //     assertTrue(
-    //         licenseMarketPlace.balanceOfHolder(nftAccountAddr, users.bob) == 1,
-    //         "Should only have 1 NFT right now"
-    //     );
-
-    //     assertTrue(
-    //         licenseMarketPlace.balanceOfHolder(nftAccountAddr, users.bob) == 1,
-    //         "Should only have 1 NFT right now"
-    //     );
-    //     vm.stopPrank();
-    // }
 }

@@ -37,6 +37,7 @@ contract LicenseMarketPlace is
 {
     bytes4 internal constant MAGICVALUE = 0x1626ba7e;
     IIPAssetRegistry public immutable IPA_REGISTRY;
+
     ILicenseRegistry public immutable LICENSE_REGISTRY;
     uint256 public immutable POLICY_ID;
     IStoryProtocolGateway public spg;
@@ -88,6 +89,25 @@ contract LicenseMarketPlace is
         address sharesAddr
     ) public view returns (SekaiObjs.LicenseMetadata memory) {
         return sharesMetadata[sharesAddr];
+    }
+
+    function isRegisteredToLicenseMarketPlace(
+        uint256 chainId,
+        address tokenContract,
+        uint256 tokenId
+    ) public view returns (bool) {
+        address addr = IPA_REGISTRY.ipAccount(chainId, tokenContract, tokenId);
+        return sharesMetadata[addr].licenseId != 0;
+    }
+
+    function isRegisteredToStoryProtocol(
+        uint256 chainId,
+        address tokenContract,
+        uint256 tokenId
+    ) public view returns (bool) {
+        address addr = IPA_REGISTRY.ipAccount(chainId, tokenContract, tokenId);
+        // Check that the address is not null
+        return addr != address(0);
     }
 
     constructor(
@@ -169,13 +189,6 @@ contract LicenseMarketPlace is
         bytes32 ip_content_hash,
         string calldata ip_url
     ) external returns (uint256, address) {
-        Metadata.Attribute[] memory attributes = new Metadata.Attribute[](0);
-        Metadata.IPMetadata memory ipMetadata = Metadata.IPMetadata({
-            name: ip_name,
-            hash: ip_content_hash,
-            url: ip_url,
-            customMetadata: attributes
-        });
         IPA_REGISTRY.setApprovalForAll(address(spg), true);
 
         address nftAccountAddr = REGISTRATION_MODULE.registerRootIp(
@@ -424,7 +437,7 @@ contract LicenseMarketPlace is
             //     LICENSE_REGISTRY.safeTransferFrom(owner, childIpId, licenseId, 1, "");
             // }
             // LICENSE_REGISTRY.safeTransferFrom(owner, childIpId, licenseId, 1, "");
-            
+
             licensesToLink[i] = licenseId;
         }
 
