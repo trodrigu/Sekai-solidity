@@ -9,6 +9,8 @@ import {MockLicensingModule} from "@story-protocol/protocol-core/test/foundry/mo
 import {MockRoyaltyModule} from "@story-protocol/protocol-core/test/foundry/mocks/module/MockRoyaltyModule.sol";
 import {ILicensingModule} from "@story-protocol/protocol-core/contracts/interfaces/modules/licensing/ILicensingModule.sol";
 import {MockLicenseRegistry} from "@story-protocol/protocol-core/test/foundry/mocks/registry/MockLicenseRegistry.sol";
+import "./Users.t.sol";
+
 
 contract MockERC721 is ERC721 {
     uint256 public totalSupply = 0;
@@ -33,17 +35,25 @@ contract LicenseMarketPlaceTest is Test {
     MockERC721 public NFT;
     LicenseMarketPlace public licenseMarketPlace;
 
-// MockLicensingModule licensingModule = new MockLicensingModule();
-        // MockLicenseRegistry licenseRegistry = new MockLicenseRegistry();
-        // MockIpAssetRegistry ipAssetRegistry = new MockIpAssetRegistry();
+    address public alice;
+    address public bob;
+    Users public users;
+
+    // MockLicensingModule licensingModule = new MockLicensingModule();
+    // MockLicenseRegistry licenseRegistry = new MockLicenseRegistry();
+    // MockIpAssetRegistry ipAssetRegistry = new MockIpAssetRegistry();
+    address royalityModule = 0xA6bEf9CC650A16939566c1da5d5088f3F028a865;
+    address licenseRegistryAddress = 0xc2BC7a2d5784768BDEd98436f2522A4931e2FBb4;
+    address licensingModuleAddr = 0x950d766A1a0afDc33c3e653C861A8765cb42DbdC;
+    address ipAssetRegistry = 0x292639452A975630802C17c9267169D93BD5a793;
+
     function setUp() public {
         NFT = new MockERC721("Story Mock NFT", "STORY");
-        address royalityModule = address(new MockRoyaltyModule());
-        address licenseRegistryAddress = address(new MockLicenseRegistry());
-        address licensingModuleAddr = address(new MockLicensingModule(address(0), address(0)));
-        address ipAssetRegistry = address(new IPAssetRegistry());
+
+        users = UsersLib.createMockUsers(vm);
 
         
+
         licenseMarketPlace = new LicenseMarketPlace(
             licensingModuleAddr,
             licenseRegistryAddress,
@@ -51,11 +61,26 @@ contract LicenseMarketPlaceTest is Test {
             address(NFT),
             1
         );
+
+        vm.stopPrank();
     }
 
-    // function test_LicenseMarketPlaceRegistration() public {
-    //     uint256 tokenId = NFT.mint();
-    //     address ipId = licenseMarketPlace.registerIpAsset("test", tokenId);
-    //     assertTrue(IPAssetRegistry(IPA_REGISTRY_ADDR).isRegistered(ipId), "not registered");
-    // }
+    // 1. Mint an NFT
+    // 2. Register the NFT in the LicenseMarketPlace
+    // 3. Have another person buy the NFT
+    function test_LicenseMarketPlaceRegistration() public {
+        vm.startPrank(users.alice);
+        uint256 tokenId = NFT.mint();
+
+        uint256 licenseId = licenseMarketPlace.registerExistingNFT(
+            address(NFT),
+            tokenId,
+            "MyNFT",
+            "random bytes",
+            "www.sekai.com"
+        );
+
+        assertTrue(licenseMarketPlace.balanceOfHolder(address(NFT), users.alice) == 1, "not registered");
+        vm.stopPrank();
+    }
 }

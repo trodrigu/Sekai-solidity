@@ -22,7 +22,6 @@ contract LicenseMarketPlace is ILicenseMarketPlace {
     address public immutable DEFAULT_SPG_NFT;
     ILicensingModule public immutable LICENSING_MODULE;
     PILPolicyFrameworkManager public immutable POLICY_MANAGER;
-    
 
     event Trade(
         address trader,
@@ -48,6 +47,13 @@ contract LicenseMarketPlace is ILicenseMarketPlace {
     mapping(address => LicenseMetadata) public sharesMetadata;
 
     mapping(uint256 => address) public licenseIdToAddress;
+
+    function balanceOfHolder(
+        address sharesAddr,
+        address holderAddr
+    ) public view returns (uint256) {
+        return sharesBalance[sharesAddr][holderAddr];
+    }
 
     constructor(
         address licensingModuleAddr,
@@ -130,11 +136,13 @@ contract LicenseMarketPlace is ILicenseMarketPlace {
             url: ip_url,
             customMetadata: attributes
         });
+
         SPG.Signature memory signature = SPG.Signature({
             signer: address(this),
             deadline: block.timestamp + 1000,
             signature: ""
         });
+
         address nftAccountAddr = spg.registerIpWithSig(
             POLICY_ID,
             tokenContract,
@@ -350,15 +358,23 @@ contract LicenseMarketPlace is ILicenseMarketPlace {
         uint256[] memory licensesToLink = new uint256[](parentIps.length);
         for (uint256 i = 0; i < parentIps.length; i++) {
             licensesToLink[i] = sharesMetadata[parentIps[i]].licenseId;
-            
         }
-        LICENSING_MODULE.linkIpToParents(licensesToLink, childIpId, royaltyContext);
+        LICENSING_MODULE.linkIpToParents(
+            licensesToLink,
+            childIpId,
+            royaltyContext
+        );
         for (uint256 i = 0; i < parentIps.length; i++) {
             sharesMetadata[parentIps[i]].totalSupply--;
             sharesMetadata[parentIps[i]].numDerivatives++;
         }
     }
-    function setApproval(address licensorAddr, address childIpId, bool approved) external {
+
+    function setApproval(
+        address licensorAddr,
+        address childIpId,
+        bool approved
+    ) external {
         uint256 licenseId = sharesMetadata[licensorAddr].licenseId;
         POLICY_MANAGER.setApproval(licenseId, childIpId, approved);
     }
